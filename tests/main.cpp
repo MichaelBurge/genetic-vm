@@ -40,8 +40,26 @@ vector<int8_t> sample_program() {
     OP_CUT,
     // Main program
     OP_TRIGGER, -4,
-      };
+  };
   return ret;
+}
+
+BOOST_AUTO_TEST_CASE( sample_addition_program) {
+  vector<int8_t> addition_program{
+    OP_CONST, 6,
+    OP_CONST, 7,
+    OP_ADD, -1, -2,
+    OP_OUTPUT, -1,
+    OP_TRIGGER, -1,
+  };
+  auto nodes = lift_bytes_to_graph(addition_program);
+  auto context = ExecutionContext(nodes);
+  context.step();
+  context.step();
+  context.step();
+  context.step();
+  BOOST_CHECK_EQUAL(context.output_data.size(), 1);
+  BOOST_CHECK_EQUAL(context.output_data[0], 13);
 }
 
 BOOST_AUTO_TEST_CASE( print_sample_program) {
@@ -63,10 +81,11 @@ BOOST_AUTO_TEST_CASE( check_sample_program ) {
   BOOST_CHECK_EQUAL(context.pending_instructions.size(), 2);
   BOOST_CHECK( context.is_pending(12));
   BOOST_CHECK( context.is_pending(16));
+  context.step();
 }
 
 BOOST_AUTO_TEST_CASE( num_instructions) {
-  auto num_instructions = 19;
+  auto num_instructions = 20;
   auto num_instruction_types = 8;
   BOOST_CHECK_EQUAL(instruction_names.size(), num_instructions);
   BOOST_CHECK_EQUAL(instruction_type_names.size(), num_instruction_types);

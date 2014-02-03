@@ -26,6 +26,7 @@ enum Instruction {
     OP_IF,
     OP_LEQ,
     OP_MULTIPLY,
+    OP_OUTPUT,
     OP_REGISTER,
     OP_NOP,
     OP_SET,
@@ -48,7 +49,7 @@ struct InstructionNode {
     AbsoluteAddress address;
     Instruction instruction;
     bool active;
-    int8_t output;
+    Data output;
     union {
         Data data;
         struct { RelativeAddress i; } unop;
@@ -66,8 +67,10 @@ extern map<InstructionType, string> instruction_type_names;
 
 extern Instruction instruction_from_bytes(int8_t);
 extern string show_instruction_node(const InstructionNode&);
+extern void print_instruction_nodes(const vector<InstructionNode>&);
 extern int num_inputs_for_instruction_type(InstructionType);
 extern InstructionType instruction_type(Instruction);
 extern vector<InstructionNode> lift_bytes_to_graph(const vector<int8_t>&);
 extern vector<AbsoluteAddress> dependencies(const InstructionNode&);
 extern AbsoluteAddress translate_relative(const InstructionNode&, RelativeAddress);
+extern AbsoluteAddress translate_relative(AbsoluteAddress, RelativeAddress);

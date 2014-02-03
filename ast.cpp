@@ -159,6 +159,7 @@ std::map<Instruction, std::string> instruction_names = boost::assign::map_list_o
   (OP_IF,       "OP_IF")
   (OP_LEQ,      "OP_LEQ")
   (OP_MULTIPLY, "OP_MULTIPLY")
+  (OP_OUTPUT,   "OP_OUTPUT")
   (OP_REGISTER, "OP_REGISTER")
   (OP_NOP,      "OP_NOP")
   (OP_SET,      "OP_SET")
@@ -187,6 +188,7 @@ InstructionType instruction_type(Instruction instruction) {
     return IT_DATA;
 
   case OP_BLOCK1:
+  case OP_OUTPUT:
   case OP_REGISTER:
   case OP_TRIGGER:
     return IT_UNOP;
@@ -244,7 +246,11 @@ string show_instruction_node(const InstructionNode& node) {
   auto type = instruction_type(instruction);
   string instruction_name = instruction_names[instruction];
   string instruction_type_name = instruction_type_names[type];
-  string base_output = instruction_name + " (Type=" + instruction_type_name;
+  string base_output =
+    instruction_name + " (" +
+    "Active=" + string(node.active ? "Y" : "N") + "," + 
+    "Type=" + instruction_type_name
+    ;
   string extra_output;
   switch (type) {
   case IT_NOINPUT:
@@ -284,7 +290,11 @@ string show_instruction_node(const InstructionNode& node) {
 }
 
 AbsoluteAddress translate_relative(const InstructionNode& node, RelativeAddress offset) {
-  return static_cast<AbsoluteAddress>(node.address + offset);
+  return translate_relative(node.address, offset);
+}
+
+AbsoluteAddress translate_relative(AbsoluteAddress base, RelativeAddress offset) {
+  return static_cast<AbsoluteAddress>(base + offset);
 }
 
 vector<AbsoluteAddress> dependencies(const InstructionNode& node) {
@@ -292,6 +302,8 @@ vector<AbsoluteAddress> dependencies(const InstructionNode& node) {
   auto type = instruction_type(node.instruction);
   switch (type) {
   case IT_NOINPUT:
+    break;
+  case IT_DATA:
     break;
   case IT_UNOP:
     ret.push_back(translate_relative(node, node.input.unop.i));
@@ -320,4 +332,10 @@ vector<AbsoluteAddress> dependencies(const InstructionNode& node) {
     throw logic_error("Unknown instruction type");
   }
   return ret;
+}
+
+void print_instruction_nodes(const vector<InstructionNode>& nodes) {
+  for_each(nodes.begin(), nodes.end(), [] (const InstructionNode& node) {
+      cout << show_instruction_node(node) << endl;
+  });
 }

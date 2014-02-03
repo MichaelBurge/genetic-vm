@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
+using namespace boost::iostreams;
 using namespace std;
 
 ExecutionContext::ExecutionContext(const vector<InstructionNode>& _nodes) {
@@ -14,9 +15,7 @@ ExecutionContext::ExecutionContext(const vector<InstructionNode>& _nodes) {
 }
 
 void ExecutionContext::print_nodes() {
-  for_each(this->nodes.begin(), this->nodes.end(), [] (const InstructionNode& node) {
-      cout << show_instruction_node(node) << endl;
-  });
+  print_instruction_nodes(this->nodes);
 }
 
 void ExecutionContext::print_pending() {
@@ -56,9 +55,10 @@ void ExecutionContext::step() {
         pending.begin(),
         pending.end(),
         [&] (const AbsoluteAddress& address) {
-          auto node = get_address(address);
+          auto& node = get_address(address);
           if (this->should_execute(node)) {
             this->execute_node(node);
+            node.active = true;
             nodes_to_remove.insert(address);
           } else {
             this->ensure_dependencies_are_triggered(node);
@@ -69,12 +69,18 @@ void ExecutionContext::step() {
     });
 }
 
- bool ExecutionContext::is_pending(AbsoluteAddress address) {
+void ExecutionContext::step_until_done(int max_iterations) {
+  while (!(this->pending_instructions.empty()) && max_iterations-- > 0) {
+    this->step();
+  }
+}
+
+bool ExecutionContext::is_pending(AbsoluteAddress address) {
    return !(this->pending_instructions.find(address) ==
            this->pending_instructions.end());
 }
 
-void ExecutionContext::execute_node(const InstructionNode& node) {
+void ExecutionContext::execute_node(InstructionNode& node) {
   switch (node.instruction) {
   case OP_ADD:
     handle_OP_ADD(node); break;
@@ -104,6 +110,8 @@ void ExecutionContext::execute_node(const InstructionNode& node) {
     handle_OP_LEQ(node); break;
   case OP_MULTIPLY:
     handle_OP_MULTIPLY(node); break;
+  case OP_OUTPUT:
+    handle_OP_OUTPUT(node); break;
   case OP_REGISTER:
     handle_OP_REGISTER(node); break;
   case OP_NOP:
@@ -119,78 +127,98 @@ void ExecutionContext::execute_node(const InstructionNode& node) {
   }
 };
 
-void ExecutionContext::handle_OP_ADD(const InstructionNode&) {
+Data ExecutionContext::consume_node(AbsoluteAddress root, RelativeAddress offset) {
+  return this->consume_node(translate_relative(root, offset));
+}
+
+Data ExecutionContext::consume_node(AbsoluteAddress address) {
+  auto& node = this->get_address(address);
+  return this->consume_node(node);
+}
+
+Data ExecutionContext::consume_node(InstructionNode& node) {
+  node.active = false;
+  return node.output;
+}
+
+void ExecutionContext::handle_OP_ADD(InstructionNode& node) {
+  auto d1 = consume_node(node.address, node.input.binop.i1);
+  auto d2 = consume_node(node.address, node.input.binop.i2);
+  node.output = d1 + d2;
+}
+
+void ExecutionContext::handle_OP_BIND(InstructionNode&) {
   throw logic_error("Unimplemented instruction");
 }
 
-void ExecutionContext::handle_OP_BIND(const InstructionNode&) {
+void ExecutionContext::handle_OP_BLOCK1(InstructionNode&) {
   throw logic_error("Unimplemented instruction");
 }
 
-void ExecutionContext::handle_OP_BLOCK1(const InstructionNode&) {
+void ExecutionContext::handle_OP_BLOCK2(InstructionNode&) {
   throw logic_error("Unimplemented instruction");
 }
 
-void ExecutionContext::handle_OP_BLOCK2(const InstructionNode&) {
+void ExecutionContext::handle_OP_BLOCK3(InstructionNode&) {
   throw logic_error("Unimplemented instruction");
 }
 
-void ExecutionContext::handle_OP_BLOCK3(const InstructionNode&) {
+void ExecutionContext::handle_OP_BLOCK4(InstructionNode&) {
   throw logic_error("Unimplemented instruction");
 }
 
-void ExecutionContext::handle_OP_BLOCK4(const InstructionNode&) {
+void ExecutionContext::handle_OP_CONST(InstructionNode& node) {
+  node.output = node.input.data;
+}
+
+void ExecutionContext::handle_OP_CUT(InstructionNode&) {
   throw logic_error("Unimplemented instruction");
 }
 
-void ExecutionContext::handle_OP_CONST(const InstructionNode&) {
+void ExecutionContext::handle_OP_DIVIDE(InstructionNode&) {
   throw logic_error("Unimplemented instruction");
 }
 
-void ExecutionContext::handle_OP_CUT(const InstructionNode&) {
+void ExecutionContext::handle_OP_GEQ(InstructionNode&) {
   throw logic_error("Unimplemented instruction");
 }
 
-void ExecutionContext::handle_OP_DIVIDE(const InstructionNode&) {
+void ExecutionContext::handle_OP_GET(InstructionNode&) {
   throw logic_error("Unimplemented instruction");
 }
 
-void ExecutionContext::handle_OP_GEQ(const InstructionNode&) {
+void ExecutionContext::handle_OP_IF(InstructionNode&) {
   throw logic_error("Unimplemented instruction");
 }
 
-void ExecutionContext::handle_OP_GET(const InstructionNode&) {
+void ExecutionContext::handle_OP_LEQ(InstructionNode&) {
   throw logic_error("Unimplemented instruction");
 }
 
-void ExecutionContext::handle_OP_IF(const InstructionNode&) {
+void ExecutionContext::handle_OP_MULTIPLY(InstructionNode&) {
   throw logic_error("Unimplemented instruction");
 }
 
-void ExecutionContext::handle_OP_LEQ(const InstructionNode&) {
+void ExecutionContext::handle_OP_OUTPUT(InstructionNode& node) {
+  auto data = this->consume_node(node.address, node.input.unop.i);
+  this->output_data.push_back(data);
+}
+
+void ExecutionContext::handle_OP_REGISTER(InstructionNode&) {
   throw logic_error("Unimplemented instruction");
 }
 
-void ExecutionContext::handle_OP_MULTIPLY(const InstructionNode&) {
+void ExecutionContext::handle_OP_NOP(InstructionNode&) {
   throw logic_error("Unimplemented instruction");
 }
 
-void ExecutionContext::handle_OP_REGISTER(const InstructionNode&) {
+void ExecutionContext::handle_OP_SET(InstructionNode&) {
   throw logic_error("Unimplemented instruction");
 }
 
-void ExecutionContext::handle_OP_NOP(const InstructionNode&) {
+void ExecutionContext::handle_OP_SUBTRACT(InstructionNode&) {
   throw logic_error("Unimplemented instruction");
 }
 
-void ExecutionContext::handle_OP_SET(const InstructionNode&) {
-  throw logic_error("Unimplemented instruction");
-}
-
-void ExecutionContext::handle_OP_SUBTRACT(const InstructionNode&) {
-  throw logic_error("Unimplemented instruction");
-}
-
-void ExecutionContext::handle_OP_TRIGGER(const InstructionNode&) {
-  throw logic_error("Unimplemented instruction");
+void ExecutionContext::handle_OP_TRIGGER(InstructionNode&) {
 }
