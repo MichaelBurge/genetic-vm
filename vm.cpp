@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
-using namespace boost::iostreams;
 using namespace std;
 
 ExecutionContext::ExecutionContext(const vector<InstructionNode>& _nodes) {
@@ -12,6 +11,7 @@ ExecutionContext::ExecutionContext(const vector<InstructionNode>& _nodes) {
         return;
       pending_instructions.insert(node.address);
   });
+  debug = false;
 }
 
 void ExecutionContext::print_nodes() {
@@ -41,8 +41,8 @@ bool ExecutionContext::should_execute(const InstructionNode& node) {
 void ExecutionContext::ensure_dependencies_are_triggered(const InstructionNode& node) {
   auto ds = dependencies(node);
   for_each(ds.begin(), ds.end(), [&] (AbsoluteAddress address) {
-      auto node = this->get_address(address);
-      if (node.active)
+      auto d = this->get_address(address);
+      if (d.active)
         return;
       this->pending_instructions.insert(address);
   });
@@ -81,6 +81,8 @@ bool ExecutionContext::is_pending(AbsoluteAddress address) {
 }
 
 void ExecutionContext::execute_node(InstructionNode& node) {
+  if (this->debug)
+    cout << "Executing " << show_instruction_node(node) << endl;
   switch (node.instruction) {
   case OP_ADD:
     handle_OP_ADD(node); break;
@@ -187,8 +189,11 @@ void ExecutionContext::handle_OP_GET(InstructionNode&) {
   throw logic_error("Unimplemented instruction");
 }
 
-void ExecutionContext::handle_OP_IF(InstructionNode&) {
-  throw logic_error("Unimplemented instruction");
+void ExecutionContext::handle_OP_IF(InstructionNode& node) {
+  auto cond = this->consume_node(node.address, node.input.triop.i1);
+  auto d1 = this->consume_node(node.address, node.input.triop.i2);
+  auto d2 = this->consume_node(node.address, node.input.triop.i3);
+  node.output = (cond % 2) ? d1 : d2;
 }
 
 void ExecutionContext::handle_OP_LEQ(InstructionNode&) {

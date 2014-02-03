@@ -6,6 +6,7 @@
 using namespace std;
 
 struct ExecutionContext {
+  bool debug;
   vector<Data> input_data;
   vector<Data> output_data;
   vector<InstructionNode> nodes;

@@ -70,9 +70,8 @@ BOOST_AUTO_TEST_CASE( print_sample_program) {
   });
 }
 
-BOOST_AUTO_TEST_CASE( check_sample_program ) {
+BOOST_AUTO_TEST_CASE( updates_pending_correctly) {
   vector<InstructionNode> nodes = lift_bytes_to_graph(sample_program());
-  BOOST_CHECK_EQUAL(nodes.size(), 17);
   auto context = ExecutionContext(nodes);
   BOOST_CHECK_EQUAL(context.pending_instructions.size(), 1);
   BOOST_CHECK(!context.is_pending(12));
@@ -81,7 +80,57 @@ BOOST_AUTO_TEST_CASE( check_sample_program ) {
   BOOST_CHECK_EQUAL(context.pending_instructions.size(), 2);
   BOOST_CHECK( context.is_pending(12));
   BOOST_CHECK( context.is_pending(16));
+
+}
+
+BOOST_AUTO_TEST_CASE( check_sample_program ) {
+  vector<InstructionNode> nodes = lift_bytes_to_graph(sample_program());
+  BOOST_CHECK_EQUAL(nodes.size(), 17);
+  auto context = ExecutionContext(nodes);
+  context.debug = true;
   context.step();
+  context.print_pending();
+  context.step();
+  context.print_pending();
+  context.step();
+  context.print_pending();
+  context.step();
+  context.print_pending();
+  context.step();
+  context.print_pending();
+}
+
+BOOST_AUTO_TEST_CASE( op_if ) {
+  vector<int8_t> if_program{
+    OP_CONST,    5,
+    OP_CONST,    6,
+    OP_CONST,    1,
+    OP_IF,      -1, -2, -3,
+    OP_OUTPUT,  -1,
+    OP_TRIGGER, -1,
+  };
+  vector<InstructionNode> nodes = lift_bytes_to_graph(if_program);
+  auto context = ExecutionContext(nodes);
+  context.step_until_done(10);
+  BOOST_CHECK_EQUAL(context.output_data.size(), 1);
+  BOOST_CHECK_EQUAL(context.output_data[0], 6);
+}
+
+BOOST_AUTO_TEST_CASE( op_if_is_lazy) {
+  vector<int8_t> if_program{
+    OP_CONST,    5,
+    OP_OUTPUT,  -1,
+    OP_CONST,    6,
+    OP_OUTPUT,  -1,
+    OP_CONST,    1,
+    OP_IF,      -1, -2, -4,
+    OP_TRIGGER, -1,
+  };
+  vector<InstructionNode> nodes = lift_bytes_to_graph(if_program);
+  auto context = ExecutionContext(nodes);
+  context.step_until_done(10);
+  BOOST_CHECK_EQUAL(context.output_data.size(), 1);
+  BOOST_CHECK_EQUAL(context.output_data[0], 6);
 }
 
 BOOST_AUTO_TEST_CASE( num_instructions) {
