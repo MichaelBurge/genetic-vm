@@ -6,9 +6,10 @@
 #include <vector>
 using namespace std;
 
-typedef int8_t Address;
+typedef int8_t RelativeAddress;
 typedef int8_t Data;
 typedef int8_t Ring;
+typedef uint16_t AbsoluteAddress;
 
 enum Instruction {
     OP_ADD,
@@ -44,16 +45,20 @@ enum InstructionType {
 };
 
 struct InstructionNode {
+    AbsoluteAddress address;
     Instruction instruction;
+    bool active;
+    int8_t output;
     union {
         Data data;
-        struct { Address i; } unop;
-        struct { Address i1, i2; } binop;
-        struct { Address i1, i2, i3; } triop;
-        struct { Address i1, i2, i3, i4; } quadop;
-        struct { Ring r; Address i1; } ring_unop;
-        struct { Ring r; Address i1, i2; } ring_binop;
+        struct { RelativeAddress i; } unop;
+        struct { RelativeAddress i1, i2; } binop;
+        struct { RelativeAddress i1, i2, i3; } triop;
+        struct { RelativeAddress i1, i2, i3, i4; } quadop;
+        struct { Ring r; RelativeAddress i1; } ring_unop;
+        struct { Ring r; RelativeAddress i1, i2; } ring_binop;
     } input;
+    InstructionNode() : active(false) { }
 };
 
 extern map<Instruction, string> instruction_names;
@@ -64,3 +69,5 @@ extern string show_instruction_node(const InstructionNode&);
 extern int num_inputs_for_instruction_type(InstructionType);
 extern InstructionType instruction_type(Instruction);
 extern vector<InstructionNode> lift_bytes_to_graph(const vector<int8_t>&);
+extern vector<AbsoluteAddress> dependencies(const InstructionNode&);
+extern AbsoluteAddress translate_relative(const InstructionNode&, RelativeAddress);

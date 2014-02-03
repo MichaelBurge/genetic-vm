@@ -1,13 +1,22 @@
 #pragma once
 
 #include "ast.hpp"
+#include <unordered_set>
+using namespace std;
 
 struct ExecutionContext {
   vector<InstructionNode> nodes;
-  void dispatch_node(const InstructionNode&);
+  unordered_set<AbsoluteAddress> pending_instructions;
+  InstructionNode& get_address(AbsoluteAddress);
+  void execute_node(const InstructionNode&);
+  bool is_pending(AbsoluteAddress);
+  void print_nodes();
+  void print_pending();
   void step();
-  ExecutionContext(const vector<InstructionNode>& _nodes) : nodes(_nodes) { }
+  ExecutionContext(const vector<InstructionNode>&);
 private:
+  void ensure_dependencies_are_triggered(const InstructionNode&);
+  bool should_execute(const InstructionNode&);
   void handle_OP_ADD(const InstructionNode&);
   void handle_OP_BIND(const InstructionNode&);
   void handle_OP_BLOCK1(const InstructionNode&);

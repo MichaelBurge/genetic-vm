@@ -56,7 +56,13 @@ BOOST_AUTO_TEST_CASE( check_sample_program ) {
   vector<InstructionNode> nodes = lift_bytes_to_graph(sample_program());
   BOOST_CHECK_EQUAL(nodes.size(), 17);
   auto context = ExecutionContext(nodes);
+  BOOST_CHECK_EQUAL(context.pending_instructions.size(), 1);
+  BOOST_CHECK(!context.is_pending(12));
+  BOOST_CHECK( context.is_pending(16));
   context.step();
+  BOOST_CHECK_EQUAL(context.pending_instructions.size(), 2);
+  BOOST_CHECK( context.is_pending(12));
+  BOOST_CHECK( context.is_pending(16));
 }
 
 BOOST_AUTO_TEST_CASE( num_instructions) {

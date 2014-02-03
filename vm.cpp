@@ -1,12 +1,80 @@
 #include "vm.hpp"
+#include <algorithm>
+#include <iostream>
 #include <stdexcept>
 using namespace std;
 
-void ExecutionContext::step() {
-  throw logic_error("Unimplemented step");
+ExecutionContext::ExecutionContext(const vector<InstructionNode>& _nodes) {
+  this->nodes = _nodes;
+  for_each(_nodes.begin(), _nodes.end(), [&] (const InstructionNode& node) {
+      if (node.instruction != OP_TRIGGER)
+        return;
+      pending_instructions.insert(node.address);
+  });
 }
 
-void ExecutionContext::dispatch_node(const InstructionNode& node) {
+void ExecutionContext::print_nodes() {
+  for_each(this->nodes.begin(), this->nodes.end(), [] (const InstructionNode& node) {
+      cout << show_instruction_node(node) << endl;
+  });
+}
+
+void ExecutionContext::print_pending() {
+  auto& pending = this->pending_instructions;
+  cout << "Pending instructions:" << endl;
+  for_each(pending.begin(), pending.end(), [&] (AbsoluteAddress address) {
+      auto node = this->get_address(address);
+      cout << "Address " << address << ", which is a " << show_instruction_node(node) << endl;
+    });
+}
+
+InstructionNode& ExecutionContext::get_address(AbsoluteAddress address) {
+  return this->nodes[address % this->nodes.size()];
+}
+
+bool ExecutionContext::should_execute(const InstructionNode& node) {
+  auto ds = dependencies(node);
+  return all_of(ds.begin(), ds.end(), [&] (AbsoluteAddress address) {
+      return this->get_address(address).active;
+    });
+}
+
+void ExecutionContext::ensure_dependencies_are_triggered(const InstructionNode& node) {
+  auto ds = dependencies(node);
+  for_each(ds.begin(), ds.end(), [&] (AbsoluteAddress address) {
+      auto node = this->get_address(address);
+      if (node.active)
+        return;
+      this->pending_instructions.insert(address);
+  });
+}
+
+void ExecutionContext::step() {
+    unordered_set<AbsoluteAddress> nodes_to_remove;
+    auto& pending = this->pending_instructions;
+    for_each(
+        pending.begin(),
+        pending.end(),
+        [&] (const AbsoluteAddress& address) {
+          auto node = get_address(address);
+          if (this->should_execute(node)) {
+            this->execute_node(node);
+            nodes_to_remove.insert(address);
+          } else {
+            this->ensure_dependencies_are_triggered(node);
+          }
+        });
+    for_each(nodes_to_remove.begin(), nodes_to_remove.end(), [&] (AbsoluteAddress address) {
+        pending.erase(pending.find(address));
+    });
+}
+
+ bool ExecutionContext::is_pending(AbsoluteAddress address) {
+   return !(this->pending_instructions.find(address) ==
+           this->pending_instructions.end());
+}
+
+void ExecutionContext::execute_node(const InstructionNode& node) {
   switch (node.instruction) {
   case OP_ADD:
     handle_OP_ADD(node); break;

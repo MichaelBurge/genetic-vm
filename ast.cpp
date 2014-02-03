@@ -9,11 +9,16 @@ void consume_input(InstructionNode& node, InstructionType type, int input_no, in
 
 vector<InstructionNode> lift_bytes_to_graph(const vector<int8_t>& bytes) {
   vector<InstructionNode> ret;
+  AbsoluteAddress next_address = 0;
   InstructionNode current;
   int num_inputs = 0;
   auto handle_instruction_input = [&] (int8_t block) {
     auto type = instruction_type(current.instruction);
     consume_input(current, type, num_inputs--, block);
+  };
+  auto finalize_instruction = [&] () {
+    current.address = next_address++;
+    ret.push_back(current);
   };
   for_each(bytes.begin(), bytes.end(), [&] (const int8_t block) {
       auto handle_new_instruction = [&] () {
@@ -29,7 +34,7 @@ vector<InstructionNode> lift_bytes_to_graph(const vector<int8_t>& bytes) {
         handle_instruction_input(block);
       }
       if (num_inputs == 0)
-        ret.push_back(current);
+        finalize_instruction();
     });
   return ret;
 }
@@ -276,4 +281,43 @@ string show_instruction_node(const InstructionNode& node) {
     throw logic_error("Unknown instruction type");
   }
   return base_output + extra_output + ")";
+}
+
+AbsoluteAddress translate_relative(const InstructionNode& node, RelativeAddress offset) {
+  return static_cast<AbsoluteAddress>(node.address + offset);
+}
+
+vector<AbsoluteAddress> dependencies(const InstructionNode& node) {
+  auto ret = vector<AbsoluteAddress>();
+  auto type = instruction_type(node.instruction);
+  switch (type) {
+  case IT_NOINPUT:
+    break;
+  case IT_UNOP:
+    ret.push_back(translate_relative(node, node.input.unop.i));
+    break;
+  case IT_BINOP:
+    ret.push_back(translate_relative(node, node.input.binop.i1));
+    ret.push_back(translate_relative(node, node.input.binop.i2));
+    break;
+  case IT_TRIOP:
+    ret.push_back(translate_relative(node, node.input.triop.i1));
+    ret.push_back(translate_relative(node, node.input.triop.i2));
+    ret.push_back(translate_relative(node, node.input.triop.i3));
+    break;
+  case IT_QUADOP:
+    ret.push_back(translate_relative(node, node.input.quadop.i1));
+    ret.push_back(translate_relative(node, node.input.quadop.i2));
+    ret.push_back(translate_relative(node, node.input.quadop.i3));
+    ret.push_back(translate_relative(node, node.input.quadop.i4));
+    break;
+  case IT_RING_UNOP:
+    break;
+  case IT_RING_BINOP:
+    ret.push_back(translate_relative(node, node.input.ring_binop.i2));
+    break;
+  default:
+    throw logic_error("Unknown instruction type");
+  }
+  return ret;
 }
