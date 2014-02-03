@@ -2,6 +2,7 @@
 #define BOOST_TEST_MODULE Instructions
 
 #include "../ast.hpp"
+#include "../vm.hpp"
 #include <boost/test/unit_test.hpp>
 #include <iostream>
 #include <vector>
@@ -54,6 +55,8 @@ BOOST_AUTO_TEST_CASE( print_sample_program) {
 BOOST_AUTO_TEST_CASE( check_sample_program ) {
   vector<InstructionNode> nodes = lift_bytes_to_graph(sample_program());
   BOOST_CHECK_EQUAL(nodes.size(), 17);
+  auto context = ExecutionContext(nodes);
+  context.step();
 }
 
 BOOST_AUTO_TEST_CASE( num_instructions) {

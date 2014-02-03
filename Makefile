@@ -1,4 +1,4 @@
-primary_files = ast.o
+primary_files = ast.o vm.o
 CPP_OPTIONS = -Wall -std=c++11 -g -pg
 test_libs = -lboost_unit_test_framework
 
