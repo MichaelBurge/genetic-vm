@@ -22,14 +22,15 @@ enum Instruction {
     OP_CUT,
     OP_DIVIDE,
     OP_GEQ,
-    OP_GET,
+    OP_GET_BYTE,
+    OP_GET_REGISTER,
     OP_IF,
     OP_LEQ,
     OP_MULTIPLY,
     OP_OUTPUT,
-    OP_REGISTER,
     OP_NOP,
-    OP_SET,
+    OP_SET_BYTE,
+    OP_SET_REGISTER,
     OP_SUBTRACT,
     OP_TRIGGER,
 };
@@ -60,7 +61,7 @@ struct InstructionNode {
         struct { Ring r; RelativeAddress i1; } ring_unop;
         struct { Ring r; RelativeAddress i1, i2; } ring_binop;
     } input;
-    InstructionNode() : extra_state(0), active(false) { }
+  InstructionNode() : extra_state(0), active(false), output(0) { }
 };
 
 extern map<Instruction, string> instruction_names;

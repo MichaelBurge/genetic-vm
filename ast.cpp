@@ -145,26 +145,27 @@ void consume_input(InstructionNode& node, InstructionType type, int input_no, in
 }
 
 std::map<Instruction, std::string> instruction_names = boost::assign::map_list_of
-  (OP_ADD,      "OP_ADD")
-  (OP_BIND,     "OP_BIND")
-  (OP_BLOCK1,   "OP_BLOCK1")
-  (OP_BLOCK2,   "OP_BLOCK2")
-  (OP_BLOCK3,   "OP_BLOCK3")
-  (OP_BLOCK4,   "OP_BLOCK4")
-  (OP_CONST,    "OP_CONST")
-  (OP_CUT,      "OP_CUT")
-  (OP_DIVIDE,   "OP_DIVIDE")
-  (OP_GEQ,      "OP_GEQ")
-  (OP_GET,      "OP_GET")
-  (OP_IF,       "OP_IF")
-  (OP_LEQ,      "OP_LEQ")
-  (OP_MULTIPLY, "OP_MULTIPLY")
-  (OP_OUTPUT,   "OP_OUTPUT")
-  (OP_REGISTER, "OP_REGISTER")
-  (OP_NOP,      "OP_NOP")
-  (OP_SET,      "OP_SET")
-  (OP_SUBTRACT, "OP_SUBTRACT")
-  (OP_TRIGGER,  "OP_TRIGGER")
+  (OP_ADD,          "OP_ADD")
+  (OP_BIND,         "OP_BIND")
+  (OP_BLOCK1,       "OP_BLOCK1")
+  (OP_BLOCK2,       "OP_BLOCK2")
+  (OP_BLOCK3,       "OP_BLOCK3")
+  (OP_BLOCK4,       "OP_BLOCK4")
+  (OP_CONST,        "OP_CONST")
+  (OP_CUT,          "OP_CUT")
+  (OP_DIVIDE,       "OP_DIVIDE")
+  (OP_GEQ,          "OP_GEQ")
+  (OP_GET_BYTE,     "OP_GET_BYTE")
+  (OP_GET_REGISTER, "OP_GET_REGISTER")
+  (OP_IF,           "OP_IF")
+  (OP_LEQ,          "OP_LEQ")
+  (OP_MULTIPLY,     "OP_MULTIPLY")
+  (OP_OUTPUT,       "OP_OUTPUT")
+  (OP_NOP,          "OP_NOP")
+  (OP_SET_BYTE,     "OP_SET_BYTE")
+  (OP_SET_REGISTER, "OP_SET_REGISTER")
+  (OP_SUBTRACT,     "OP_SUBTRACT")
+  (OP_TRIGGER,      "OP_TRIGGER")
   ;
 
 map<InstructionType, string> instruction_type_names = boost::assign::map_list_of
@@ -185,11 +186,11 @@ InstructionType instruction_type(Instruction instruction) {
     return IT_NOINPUT;
 
   case OP_CONST:
+  case OP_GET_REGISTER:
     return IT_DATA;
 
   case OP_BLOCK1:
   case OP_OUTPUT:
-  case OP_REGISTER:
   case OP_TRIGGER:
     return IT_UNOP;
 
@@ -210,10 +211,11 @@ InstructionType instruction_type(Instruction instruction) {
   case OP_BLOCK4:
     return IT_QUADOP;
 
-  case OP_GET:
+  case OP_GET_BYTE:
+  case OP_SET_REGISTER:
     return IT_RING_UNOP;
 
-  case OP_SET:
+  case OP_SET_BYTE:
     return IT_RING_BINOP;
 
   default:

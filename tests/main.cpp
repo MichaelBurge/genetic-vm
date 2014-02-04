@@ -15,32 +15,30 @@ using namespace std;
 // cut
 
 vector<int8_t> sample_program() {
+  const int8_t program_length = 37;
   vector<int8_t> ret{
-    // i = 0
-    OP_BIND,  1, 0,
-    OP_CONST, 0,
     // value of i <= length
-    OP_LEQ,      1, 2,
-    OP_REGISTER, 0,
-    OP_CONST,    16, // length of program in instructions, minus 1
+    OP_LEQ,          1, 2,
+    OP_GET_REGISTER, 0,
+    OP_CONST,        program_length,
     // i++
-    OP_SET,      0, 1, 2,
-    OP_REGISTER, 0,
-    OP_ADD,      -1, 1,
-    OP_CONST,    1,
+    OP_SET_REGISTER, 0, 1,
+    OP_ADD,          1, 2,
+    OP_GET_REGISTER, 0,
+    OP_CONST,        1,
     // copy self[i] to target[i]
-    OP_SET, 1, 2, 1,
-    OP_GET, 0, 1,
-    OP_REGISTER, 0,
+    OP_SET_BYTE,     1, 2, 1,
+    OP_GET_BYTE,     0, 1,
+    OP_GET_REGISTER, 0,
     // for
-    OP_BLOCK2, -12, 1,
-    OP_IF,     -11, 1, 2,
-    OP_BLOCK3, -5, -9, -1,
+    OP_IF,     -10, 1, 2,
+    OP_BLOCK3, -4, -8, -1,
     // cut
     OP_CUT,
     // Main program
-    OP_TRIGGER, -4,
+    OP_TRIGGER, -3,
   };
+  BOOST_REQUIRE_EQUAL((int)ret.size(), (int)program_length);
   return ret;
 }
 
@@ -74,18 +72,17 @@ BOOST_AUTO_TEST_CASE( updates_pending_correctly) {
   vector<InstructionNode> nodes = lift_bytes_to_graph(sample_program());
   auto context = ExecutionContext(nodes);
   BOOST_CHECK_EQUAL(context.pending_instructions.size(), 1);
-  BOOST_CHECK(!context.is_pending(12));
-  BOOST_CHECK( context.is_pending(16));
+  BOOST_CHECK(!context.is_pending(10));
+  BOOST_CHECK( context.is_pending(13));
   context.step();
   BOOST_CHECK_EQUAL(context.pending_instructions.size(), 2);
-  BOOST_CHECK( context.is_pending(12));
-  BOOST_CHECK( context.is_pending(16));
-
+  BOOST_CHECK( context.is_pending(10));
+  BOOST_CHECK( context.is_pending(13));
 }
 
 BOOST_AUTO_TEST_CASE( check_sample_program ) {
   vector<InstructionNode> nodes = lift_bytes_to_graph(sample_program());
-  BOOST_CHECK_EQUAL(nodes.size(), 17);
+  BOOST_CHECK_EQUAL(nodes.size(), 14);
   auto context = ExecutionContext(nodes);
   context.debug = true;
   context.step();
@@ -98,6 +95,15 @@ BOOST_AUTO_TEST_CASE( check_sample_program ) {
   context.print_pending();
   context.step();
   context.print_pending();
+  context.step();
+  context.print_pending();
+  context.print_registers();
+  context.step();
+  context.print_pending();
+  context.print_registers();
+  context.step();
+  context.print_pending();
+  context.print_registers();
 }
 
 BOOST_AUTO_TEST_CASE( op_if ) {
@@ -135,7 +141,7 @@ BOOST_AUTO_TEST_CASE( op_if_is_lazy) {
 }
 
 BOOST_AUTO_TEST_CASE( num_instructions) {
-  auto num_instructions = 20;
+  auto num_instructions = 21;
   auto num_instruction_types = 8;
   BOOST_CHECK_EQUAL(instruction_names.size(), num_instructions);
   BOOST_CHECK_EQUAL(instruction_type_names.size(), num_instruction_types);

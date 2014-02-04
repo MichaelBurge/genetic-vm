@@ -11,6 +11,8 @@ ExecutionContext::ExecutionContext(const vector<InstructionNode>& _nodes) {
         return;
       pending_instructions.insert(node.address);
   });
+  this->registers = vector<Data>();
+  for (int i = 10; i --> 0;) this->registers.push_back(0);
   debug = false;
 }
 
@@ -25,6 +27,14 @@ void ExecutionContext::print_pending() {
       auto node = this->get_address(address);
       cout << "Address " << address << ", which is a " << show_instruction_node(node) << endl;
     });
+}
+
+void ExecutionContext::print_registers() {
+  auto& registers = this->registers;
+  int i = 1;
+  for_each(registers.begin(), registers.end(), [&] (const Data& value) {
+      cout << "Register " << i++ << ": " << (int)value << endl;
+  });
 }
 
 InstructionNode& ExecutionContext::get_address(AbsoluteAddress address) {
@@ -105,8 +115,10 @@ bool ExecutionContext::execute_node(InstructionNode& node) {
     handle_OP_DIVIDE(node); break;
   case OP_GEQ:
     handle_OP_GEQ(node); break;
-  case OP_GET:
-    handle_OP_GET(node); break;
+  case OP_GET_BYTE:
+    handle_OP_GET_BYTE(node); break;
+  case OP_GET_REGISTER:
+    handle_OP_GET_REGISTER(node); break;
   case OP_IF:
     return handle_OP_IF(node); break;
   case OP_LEQ:
@@ -115,12 +127,12 @@ bool ExecutionContext::execute_node(InstructionNode& node) {
     handle_OP_MULTIPLY(node); break;
   case OP_OUTPUT:
     handle_OP_OUTPUT(node); break;
-  case OP_REGISTER:
-    handle_OP_REGISTER(node); break;
   case OP_NOP:
     handle_OP_NOP(node); break;
-  case OP_SET:
-    handle_OP_SET(node); break;
+  case OP_SET_BYTE:
+    handle_OP_SET_BYTE(node); break;
+  case OP_SET_REGISTER:
+    handle_OP_SET_REGISTER(node); break;
   case OP_SUBTRACT:
     handle_OP_SUBTRACT(node); break;
   case OP_TRIGGER:
@@ -155,21 +167,10 @@ void ExecutionContext::handle_OP_BIND(InstructionNode&) {
   throw logic_error("Unimplemented instruction");
 }
 
-void ExecutionContext::handle_OP_BLOCK1(InstructionNode&) {
-  throw logic_error("Unimplemented instruction");
-}
-
-void ExecutionContext::handle_OP_BLOCK2(InstructionNode&) {
-  throw logic_error("Unimplemented instruction");
-}
-
-void ExecutionContext::handle_OP_BLOCK3(InstructionNode&) {
-  throw logic_error("Unimplemented instruction");
-}
-
-void ExecutionContext::handle_OP_BLOCK4(InstructionNode&) {
-  throw logic_error("Unimplemented instruction");
-}
+void ExecutionContext::handle_OP_BLOCK1(InstructionNode&) { }
+void ExecutionContext::handle_OP_BLOCK2(InstructionNode&) { }
+void ExecutionContext::handle_OP_BLOCK3(InstructionNode&) { }
+void ExecutionContext::handle_OP_BLOCK4(InstructionNode&) { }
 
 void ExecutionContext::handle_OP_CONST(InstructionNode& node) {
   node.output = node.input.data;
@@ -179,16 +180,28 @@ void ExecutionContext::handle_OP_CUT(InstructionNode&) {
   throw logic_error("Unimplemented instruction");
 }
 
-void ExecutionContext::handle_OP_DIVIDE(InstructionNode&) {
+void ExecutionContext::handle_OP_DIVIDE(InstructionNode& node) {
+  auto i1 = this->consume_node(node.address, node.input.binop.i1);
+  auto i2 = this->consume_node(node.address, node.input.binop.i2);
+  if (i2 == 0)
+    node.output = 0;
+  else
+    node.output = i1 / i2;
+}
+
+void ExecutionContext::handle_OP_GEQ(InstructionNode& node) {
+  auto i1 = this->consume_node(node.address, node.input.binop.i1);
+  auto i2 = this->consume_node(node.address, node.input.binop.i2);
+  node.output = i1 >= i2;
+}
+
+void ExecutionContext::handle_OP_GET_BYTE(InstructionNode&) {
   throw logic_error("Unimplemented instruction");
 }
 
-void ExecutionContext::handle_OP_GEQ(InstructionNode&) {
-  throw logic_error("Unimplemented instruction");
-}
-
-void ExecutionContext::handle_OP_GET(InstructionNode&) {
-  throw logic_error("Unimplemented instruction");
+void ExecutionContext::handle_OP_GET_REGISTER(InstructionNode& node) {
+  auto index = translate_register(node.input.data);
+  node.output = this->registers[index];
 }
 
 bool ExecutionContext::handle_OP_IF(InstructionNode& node) {
@@ -212,12 +225,16 @@ bool ExecutionContext::handle_OP_IF(InstructionNode& node) {
   throw logic_error("OP_IF in invalid state");
 }
 
-void ExecutionContext::handle_OP_LEQ(InstructionNode&) {
-  throw logic_error("Unimplemented instruction");
+void ExecutionContext::handle_OP_LEQ(InstructionNode& node) {
+  auto i1 = this->consume_node(node.address, node.input.binop.i1);
+  auto i2 = this->consume_node(node.address, node.input.binop.i2);
+  node.output = i1 <= i2;
 }
 
-void ExecutionContext::handle_OP_MULTIPLY(InstructionNode&) {
-  throw logic_error("Unimplemented instruction");
+void ExecutionContext::handle_OP_MULTIPLY(InstructionNode& node) {
+  auto i1 = this->consume_node(node.address, node.input.binop.i1);
+  auto i2 = this->consume_node(node.address, node.input.binop.i2);
+  node.output = i1 * i2;
 }
 
 void ExecutionContext::handle_OP_OUTPUT(InstructionNode& node) {
@@ -225,21 +242,28 @@ void ExecutionContext::handle_OP_OUTPUT(InstructionNode& node) {
   this->output_data.push_back(data);
 }
 
-void ExecutionContext::handle_OP_REGISTER(InstructionNode&) {
+void ExecutionContext::handle_OP_NOP(InstructionNode&) { }
+
+void ExecutionContext::handle_OP_SET_BYTE(InstructionNode& node) {
   throw logic_error("Unimplemented instruction");
 }
 
-void ExecutionContext::handle_OP_NOP(InstructionNode&) {
-  throw logic_error("Unimplemented instruction");
+void ExecutionContext::handle_OP_SET_REGISTER(InstructionNode& node) {
+  auto index = translate_register(node.input.ring_unop.r);
+  int8_t value = this->consume_node(node.address, node.input.ring_unop.i1);
+  
+  this->registers[index] = value;
+  node.output = value;
 }
 
-void ExecutionContext::handle_OP_SET(InstructionNode&) {
-  throw logic_error("Unimplemented instruction");
+void ExecutionContext::handle_OP_SUBTRACT(InstructionNode& node) {
+  auto i1 = this->consume_node(node.address, node.input.binop.i1);
+  auto i2 = this->consume_node(node.address, node.input.binop.i2);
+  node.output = i1 - i2;
 }
 
-void ExecutionContext::handle_OP_SUBTRACT(InstructionNode&) {
-  throw logic_error("Unimplemented instruction");
-}
+void ExecutionContext::handle_OP_TRIGGER(InstructionNode&) { }
 
-void ExecutionContext::handle_OP_TRIGGER(InstructionNode&) {
+uint8_t ExecutionContext::translate_register(int8_t index) {
+  return static_cast<uint8_t>(index) % (this->registers.size());
 }
