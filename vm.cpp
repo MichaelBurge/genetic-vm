@@ -35,7 +35,7 @@ bool ExecutionContext::should_execute(const InstructionNode& node) {
   auto ds = dependencies(node);
   return all_of(ds.begin(), ds.end(), [&] (AbsoluteAddress address) {
       return this->get_address(address).active;
-    });
+  });
 }
 
 void ExecutionContext::ensure_dependencies_are_triggered(const InstructionNode& node) {
@@ -57,9 +57,10 @@ void ExecutionContext::step() {
         [&] (const AbsoluteAddress& address) {
           auto& node = get_address(address);
           if (this->should_execute(node)) {
-            this->execute_node(node);
-            node.active = true;
-            nodes_to_remove.insert(address);
+            if (this->execute_node(node)) {
+              node.active = true;
+              nodes_to_remove.insert(address);
+            }
           } else {
             this->ensure_dependencies_are_triggered(node);
           }
@@ -80,7 +81,7 @@ bool ExecutionContext::is_pending(AbsoluteAddress address) {
            this->pending_instructions.end());
 }
 
-void ExecutionContext::execute_node(InstructionNode& node) {
+bool ExecutionContext::execute_node(InstructionNode& node) {
   if (this->debug)
     cout << "Executing " << show_instruction_node(node) << endl;
   switch (node.instruction) {
@@ -107,7 +108,7 @@ void ExecutionContext::execute_node(InstructionNode& node) {
   case OP_GET:
     handle_OP_GET(node); break;
   case OP_IF:
-    handle_OP_IF(node); break;
+    return handle_OP_IF(node); break;
   case OP_LEQ:
     handle_OP_LEQ(node); break;
   case OP_MULTIPLY:
@@ -127,6 +128,7 @@ void ExecutionContext::execute_node(InstructionNode& node) {
   default:
     throw logic_error("Unhandled instruction" + show_instruction_node(node));
   }
+  return true;
 };
 
 Data ExecutionContext::consume_node(AbsoluteAddress root, RelativeAddress offset) {
@@ -189,11 +191,25 @@ void ExecutionContext::handle_OP_GET(InstructionNode&) {
   throw logic_error("Unimplemented instruction");
 }
 
-void ExecutionContext::handle_OP_IF(InstructionNode& node) {
-  auto cond = this->consume_node(node.address, node.input.triop.i1);
-  auto d1 = this->consume_node(node.address, node.input.triop.i2);
-  auto d2 = this->consume_node(node.address, node.input.triop.i3);
-  node.output = (cond % 2) ? d1 : d2;
+bool ExecutionContext::handle_OP_IF(InstructionNode& node) {
+  int cond, d1, d2;
+  switch (node.extra_state) {
+  case 0:
+    cond = this->consume_node(node.address, node.input.triop.i1);
+    node.extra_state = (cond % 2) ? 1 : 2;
+    return false;
+  case 1:
+    d1 = this->consume_node(node.address, node.input.triop.i2);
+    node.extra_state = 0;
+    node.output = d1;
+    return true;
+  case 2:
+    d2 = this->consume_node(node.address, node.input.triop.i3);
+    node.extra_state = 0;
+    node.output = d2;
+    return true;
+  }
+  throw logic_error("OP_IF in invalid state");
 }
 
 void ExecutionContext::handle_OP_LEQ(InstructionNode&) {

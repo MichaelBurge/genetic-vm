@@ -25,7 +25,7 @@ private:
   Data consume_node(AbsoluteAddress);
   Data consume_node(AbsoluteAddress, RelativeAddress);
   Data consume_node(InstructionNode&);
-  void execute_node(InstructionNode&);
+  bool execute_node(InstructionNode&); // Returns whether should delist node
   void handle_OP_ADD(InstructionNode&);
   void handle_OP_BIND(InstructionNode&);
   void handle_OP_BLOCK1(InstructionNode&);
@@ -37,7 +37,7 @@ private:
   void handle_OP_DIVIDE(InstructionNode&);
   void handle_OP_GEQ(InstructionNode&);
   void handle_OP_GET(InstructionNode&);
-  void handle_OP_IF(InstructionNode&);
+  bool handle_OP_IF(InstructionNode&);
   void handle_OP_LEQ(InstructionNode&);
   void handle_OP_MULTIPLY(InstructionNode&);
   void handle_OP_OUTPUT(InstructionNode&);

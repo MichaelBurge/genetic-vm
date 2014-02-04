@@ -48,6 +48,7 @@ enum InstructionType {
 struct InstructionNode {
     AbsoluteAddress address;
     Instruction instruction;
+    int  extra_state;
     bool active;
     Data output;
     union {
@@ -59,7 +60,7 @@ struct InstructionNode {
         struct { Ring r; RelativeAddress i1; } ring_unop;
         struct { Ring r; RelativeAddress i1, i2; } ring_binop;
     } input;
-    InstructionNode() : active(false) { }
+    InstructionNode() : extra_state(0), active(false) { }
 };
 
 extern map<Instruction, string> instruction_names;

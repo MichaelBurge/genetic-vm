@@ -111,9 +111,10 @@ BOOST_AUTO_TEST_CASE( op_if ) {
   };
   vector<InstructionNode> nodes = lift_bytes_to_graph(if_program);
   auto context = ExecutionContext(nodes);
+  context.print_nodes();
   context.step_until_done(10);
   BOOST_CHECK_EQUAL(context.output_data.size(), 1);
-  BOOST_CHECK_EQUAL(context.output_data[0], 6);
+  BOOST_CHECK_EQUAL((int)context.output_data[0], (int)6);
 }
 
 BOOST_AUTO_TEST_CASE( op_if_is_lazy) {

@@ -249,6 +249,8 @@ string show_instruction_node(const InstructionNode& node) {
   string base_output =
     instruction_name + " (" +
     "Active=" + string(node.active ? "Y" : "N") + "," + 
+    "Output=" + to_string(node.output) + "," +
+    "Extra=" + to_string(node.extra_state) + "," +
     "Type=" + instruction_type_name
     ;
   string extra_output;
@@ -300,6 +302,26 @@ AbsoluteAddress translate_relative(AbsoluteAddress base, RelativeAddress offset)
 vector<AbsoluteAddress> dependencies(const InstructionNode& node) {
   auto ret = vector<AbsoluteAddress>();
   auto type = instruction_type(node.instruction);
+  // Special instructions
+  switch (node.instruction) {
+  case OP_IF:
+    RelativeAddress relative;
+    switch (node.extra_state) {
+    case 0:
+      relative = node.input.triop.i1; break;
+    case 1:
+      relative = node.input.triop.i2; break;
+    case 2:
+      relative = node.input.triop.i3; break;
+    default:
+      throw logic_error("OP_IF in invalid state: " + to_string(node.extra_state));
+    }
+    ret.push_back(translate_relative(node, relative));
+    return ret;
+  default:
+    break;
+  }
+  // Generic instruction types
   switch (type) {
   case IT_NOINPUT:
     break;
